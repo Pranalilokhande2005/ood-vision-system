@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OOD Vision System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #080808;
+    --white: #F2F0EB;
+    --cream: #E8E4DC;
+    --accent: #C8FF00;
+    --accent2: #FF4D1C;
+    --glass: rgba(242,240,235,0.04);
+    --glass-border: rgba(242,240,235,0.10);
+    --id-color: #C8FF00;
+    --ood-color: #FF4D1C;
+    --muted: rgba(242,240,235,0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--black);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed; width: 12px; height: 12px;
+    background: var(--accent); border-radius: 50%;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    position: fixed; width: 36px; height: 36px;
+    border: 1px solid var(--accent); border-radius: 50%;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease-out, width 0.3s, height 0.3s;
+    opacity: 0.5;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(242,240,235,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(242,240,235,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Noise overlay */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+
+  /* Header */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 48px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .header-tags {
+    display: flex; gap: 12px;
+  }
+  .tag {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 5px 12px; border: 1px solid var(--glass-border);
+    border-radius: 2px; color: var(--muted);
+  }
+  .tag.live { border-color: var(--accent); color: var(--accent); }
+  .tag.live::before { content: '● '; animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* Hero section */
+  .hero {
+    position: relative; z-index: 10;
+    padding: 80px 48px 60px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-eyebrow::before {
+    content: ''; display: block;
+    width: 32px; height: 1px; background: var(--muted);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 800; line-height: 0.92;
+    letter-spacing: -0.03em;
+    margin-bottom: 40px;
+  }
+  h1 span {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(242,240,235,0.3);
+  }
+  h1 em {
+    font-style: normal; color: var(--accent);
+    position: relative;
+  }
+
+  .hero-stats {
+    display: flex; gap: 48px;
+    margin-top: 48px; padding-top: 40px;
+    border-top: 1px solid var(--glass-border);
+  }
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 700; color: var(--white);
+  }
+  .stat-value.good { color: var(--id-color); }
+  .stat-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+  /* Main layout */
+  .main {
+    position: relative; z-index: 10;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; min-height: calc(100vh - 300px);
+  }
+
+  /* Upload panel */
+  .upload-panel {
+    padding: 48px;
+    border-right: 1px solid var(--glass-border);
+    display: flex; flex-direction: column; gap: 32px;
+  }
+
+  .panel-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); display: flex; align-items: center; gap: 8px;
+  }
+  .panel-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--glass-border);
+  }
+
+  .drop-zone {
+    flex: 1; min-height: 380px;
+    border: 1px dashed var(--glass-border);
+    border-radius: 4px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; cursor: none;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200,255,0,0.03);
+  }
+  .drop-zone.has-image { border-style: solid; border-color: var(--glass-border); }
+
+  .drop-zone-icon {
+    width: 64px; height: 64px;
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .drop-zone:hover .drop-zone-icon { border-color: var(--accent); transform: scale(1.1); }
+
+  .drop-zone-text {
+    text-align: center;
+  }
+  .drop-zone-text h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px; font-weight: 600; margin-bottom: 6px;
+  }
+  .drop-zone-text p { font-size: 11px; color: var(--muted); }
+
+  #preview-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    padding: 24px;
+    display: none;
+  }
+  .drop-zone.has-image #preview-img { display: block; }
+  .drop-zone.has-image .drop-zone-content { display: none; }
+
+  .drop-zone-content {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+  }
+
+  #file-input { display: none; }
+
+  .analyse-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--accent);
+    color: var(--black);
+    border: none; cursor: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 3px;
+    transition: transform 0.2s, background 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .analyse-btn:hover { transform: translateY(-2px); background: #d4ff1a; }
+  .analyse-btn:active { transform: translateY(0); }
+  .analyse-btn.loading { background: var(--glass); color: var(--muted); cursor: none; }
+  .analyse-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+  }
+  .analyse-btn:hover::after { transform: translateX(100%); }
+
+  /* Results panel */
+  .results-panel {
+    padding: 48px;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+
+  /* Status card */
+  .status-card {
+    padding: 28px 32px;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    background: var(--glass);
+    display: flex; align-items: center; gap: 20px;
+    transition: border-color 0.5s, background 0.5s;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.4s, transform 0.4s, border-color 0.5s;
+  }
+  .status-card.visible { opacity: 1; transform: translateY(0); }
+  .status-card.id { border-color: rgba(200,255,0,0.3); background: rgba(200,255,0,0.04); }
+  .status-card.ood { border-color: rgba(255,77,28,0.3); background: rgba(255,77,28,0.04); }
+
+  .status-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+    border: 1px solid var(--glass-border);
+  }
+  .status-card.id .status-icon { border-color: var(--id-color); background: rgba(200,255,0,0.08); }
+  .status-card.ood .status-icon { border-color: var(--ood-color); background: rgba(255,77,28,0.08); }
+
+  .status-text h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 700; margin-bottom: 4px;
+  }
+  .status-card.id .status-text h2 { color: var(--id-color); }
+  .status-card.ood .status-text h2 { color: var(--ood-color); }
+  .status-text p { font-size: 11px; color: var(--muted); }
+
+  /* Prediction row */
+  .prediction-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.4s 0.1s, transform 0.4s 0.1s;
+  }
+  .prediction-row.visible { opacity: 1; transform: translateY(0); }
+
+  .metric-card {
+    padding: 20px 24px;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px; background: var(--glass);
+  }
+  .metric-label {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px; font-weight: 700; color: var(--white);
+  }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Score bars */
+  .scores-section {
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.4s 0.2s, transform 0.4s 0.2s;
+  }
+  .scores-section.visible { opacity: 1; transform: translateY(0); }
+
+  .score-row {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .score-row:last-child { border-bottom: none; }
+
+  .score-header {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .score-name { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .score-numbers {
+    font-size: 12px; color: var(--white);
+  }
+  .score-numbers span { color: var(--muted); font-size: 10px; }
+
+  .bar-track {
+    height: 4px; background: var(--glass-border); border-radius: 2px;
+    position: relative; overflow: visible;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 2px;
+    width: 0%; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .bar-fill.safe { background: var(--id-color); }
+  .bar-fill.danger { background: var(--ood-color); }
+  .bar-fill.warning { background: #FFB800; }
+
+  .threshold-marker {
+    position: absolute; top: -4px;
+    width: 2px; height: 12px;
+    background: var(--white); border-radius: 1px;
+    opacity: 0.6;
+  }
+  .threshold-label {
+    position: absolute; top: 12px;
+    font-size: 9px; color: var(--muted);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; opacity: 0.4; text-align: center;
+  }
+  .empty-state-icon { font-size: 48px; }
+  .empty-state h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 600; color: var(--white);
+  }
+  .empty-state p { font-size: 12px; color: var(--muted); max-width: 240px; }
+
+  /* Confidence ring */
+  .conf-ring-wrap {
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px 0;
+  }
+  .conf-ring {
+    position: relative; width: 80px; height: 80px;
+  }
+  .conf-ring svg { transform: rotate(-90deg); }
+  .conf-ring-value {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px; font-weight: 700;
+  }
+
+  /* History strip */
+  .history-strip {
+    position: relative; z-index: 10;
+    border-top: 1px solid var(--glass-border);
+    padding: 24px 48px;
+    display: flex; gap: 12px; align-items: center; overflow-x: auto;
+  }
+  .history-label {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); white-space: nowrap; margin-right: 4px;
+  }
+  .history-item {
+    width: 48px; height: 48px; border-radius: 3px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden; flex-shrink: 0;
+    position: relative; cursor: none;
+    transition: transform 0.2s;
+  }
+  .history-item:hover { transform: scale(1.1); }
+  .history-item img { width: 100%; height: 100%; object-fit: cover; }
+  .history-item .badge {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .history-item .badge.id { background: var(--id-color); }
+  .history-item .badge.ood { background: var(--ood-color); }
+
+  /* Loading spinner */
+  .spinner {
+    display: none;
+    width: 20px; height: 20px;
+    border: 2px solid transparent;
+    border-top-color: var(--black);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+  .analyse-btn.loading .spinner { display: block; }
+  .analyse-btn.loading .btn-text { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* API endpoint info */
+  .api-info {
+    position: relative; z-index: 10;
+    padding: 20px 48px;
+    border-top: 1px solid var(--glass-border);
+    display: flex; gap: 32px; align-items: center;
+  }
+  .api-url {
+    font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .api-url code {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    padding: 3px 8px; border-radius: 2px;
+    color: var(--accent); font-size: 11px;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .upload-panel { border-right: none; border-bottom: 1px solid var(--glass-border); }
+    h1 { font-size: 48px; }
+    header { padding: 20px 24px; }
+    .hero { padding: 48px 24px 40px; }
+    .upload-panel, .results-panel { padding: 32px 24px; }
+    .hero-stats { gap: 28px; flex-wrap: wrap; }
+    .api-info { padding: 20px 24px; flex-wrap: wrap; gap: 12px; }
+    .history-strip { padding: 20px 24px; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- Header -->
+<header>
+  <div class="logo">OOD Vision System</div>
+  <div class="header-tags">
+    <div class="tag live">API Online</div>
+    <div class="tag">ResNet-50</div>
+    <div class="tag">KNN · Energy · MC Dropout</div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">Intelligent Vision — Out-of-Distribution Detection</div>
+  <h1>
+    See what the<br>
+    model <em>knows</em><br>
+    <span>and what it</span><br>
+    doesn't.
+  </h1>
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-value good">97.95%</div>
+      <div class="stat-label">AUROC vs SVHN</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value good">87.38%</div>
+      <div class="stat-label">AUROC vs CIFAR-100</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">92.81%</div>
+      <div class="stat-label">Val Accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">10</div>
+      <div class="stat-label">ID Classes</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">40K</div>
+      <div class="stat-label">Training Samples</div>
+    </div>
+  </div>
+</section>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Upload Panel -->
+  <div class="upload-panel">
+    <div class="panel-label">01 — Upload Image</div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <img id="preview-img" alt="Preview">
+      <div class="drop-zone-content">
+        <div class="drop-zone-icon">⬆</div>
+        <div class="drop-zone-text">
+          <h3>Drop image here</h3>
+          <p>or click to browse · PNG, JPG supported</p>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="file-input" accept="image/*">
+
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <button class="analyse-btn" id="analyse-btn" onclick="analyseImage()">
+        <span class="btn-text">Analyse Image</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div style="display:flex; gap:8px;">
+        <button onclick="loadSample('id')" style="flex:1; padding:10px; background:transparent; border:1px solid var(--glass-border); color:var(--muted); cursor:none; font-family:'DM Mono',monospace; font-size:11px; border-radius:2px; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--id-color)';this.style.color='var(--id-color)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--muted)'">
+          Try ID sample
+        </button>
+        <button onclick="loadSample('ood')" style="flex:1; padding:10px; background:transparent; border:1px solid var(--glass-border); color:var(--muted); cursor:none; font-family:'DM Mono',monospace; font-size:11px; border-radius:2px; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--ood-color)';this.style.color='var(--ood-color)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--muted)'">
+          Try OOD sample
+        </button>
+      </div>
+    </div>
+
+    <!-- API Config -->
+    <div style="padding: 16px 20px; border: 1px solid var(--glass-border); border-radius: 4px; background: var(--glass);">
+      <div style="font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:12px;">API Endpoint</div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <code id="api-url-display" style="font-family:'DM Mono',monospace; font-size:11px; color:var(--accent); background:rgba(200,255,0,0.06); padding:4px 10px; border:1px solid rgba(200,255,0,0.2); border-radius:2px; flex:1; min-width:0; word-break:break-all;">http://localhost:8000</code>
+        <button onclick="editApiUrl()" style="padding:6px 12px; background:transparent; border:1px solid var(--glass-border); color:var(--muted); cursor:none; font-family:'DM Mono',monospace; font-size:10px; border-radius:2px; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--white)';this.style.color='var(--white)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--muted)'">Edit</button>
+      </div>
+      <div id="url-input-wrap" style="display:none; margin-top:8px;">
+        <input id="api-url-input" type="text" value="http://localhost:8000" placeholder="http://localhost:8000"
+          style="width:100%; padding:8px 12px; background:var(--glass); border:1px solid var(--accent); color:var(--white); font-family:'DM Mono',monospace; font-size:11px; border-radius:2px; outline:none;">
+        <button onclick="saveApiUrl()" style="margin-top:6px; padding:6px 16px; background:var(--accent); color:var(--black); border:none; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; border-radius:2px; cursor:none;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Panel -->
+  <div class="results-panel" id="results-panel">
+    <div class="panel-label">02 — Analysis Results</div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-state-icon">◎</div>
+      <h3>Awaiting input</h3>
+      <p>Upload an image and click Analyse to run the full OOD detection pipeline.</p>
+    </div>
+
+    <!-- Results (hidden initially) -->
+    <div id="results-content" style="display:none; display:flex; flex-direction:column; gap:20px;">
+
+      <!-- Status card -->
+      <div class="status-card" id="status-card">
+        <div class="status-icon" id="status-icon"></div>
+        <div class="status-text">
+          <h2 id="status-title"></h2>
+          <p id="status-desc"></p>
+        </div>
+      </div>
+
+      <!-- Prediction metrics -->
+      <div class="prediction-row" id="prediction-row">
+        <div class="metric-card">
+          <div class="metric-label">Predicted Class</div>
+          <div class="metric-value" id="pred-class" style="font-size:20px;">—</div>
+          <div class="metric-sub" id="pred-sub">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Confidence</div>
+          <div class="conf-ring-wrap">
+            <div class="conf-ring">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(242,240,235,0.08)" stroke-width="4"/>
+                <circle id="conf-circle" cx="40" cy="40" r="34" fill="none" stroke="#C8FF00" stroke-width="4"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+                  style="transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)"/>
+              </svg>
+              <div class="conf-ring-value" id="conf-value">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OOD Scores -->
+      <div class="scores-section" id="scores-section">
+        <div class="panel-label" style="margin-bottom:16px;">OOD Scores</div>
+
+        <div class="score-row">
+          <div class="score-header">
+            <span class="score-name">KNN Distance</span>
+            <span class="score-numbers">
+              <span id="knn-val">—</span>
+              <span> / threshold: </span>
+              <span id="knn-thresh">—</span>
+            </span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" id="knn-bar"></div>
+            <div class="threshold-marker" id="knn-marker"></div>
+            <span class="threshold-label" id="knn-thresh-label"></span>
+          </div>
+        </div>
+
+        <div class="score-row">
+          <div class="score-header">
+            <span class="score-name">MC Entropy</span>
+            <span class="score-numbers"><span id="ent-val">—</span></span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" id="ent-bar"></div>
+          </div>
+        </div>
+
+        <div class="score-row">
+          <div class="score-header">
+            <span class="score-name">Fused Score</span>
+            <span class="score-numbers">
+              <span id="fused-val">—</span>
+              <span> / threshold: </span>
+              <span id="fused-thresh">—</span>
+            </span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" id="fused-bar"></div>
+            <div class="threshold-marker" id="fused-marker"></div>
+            <span class="threshold-label" id="fused-thresh-label"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- History strip -->
+<div class="history-strip">
+  <div class="history-label">History</div>
+  <div id="history-items" style="display:flex; gap:12px; align-items:center;">
+    <div style="font-size:11px; color:var(--muted);">No analyses yet</div>
+  </div>
+</div>
+
+<!-- API info footer -->
+<div class="api-info">
+  <div class="api-url">
+    <span style="color:var(--muted); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">Endpoints</span>
+    <code>POST /predict</code>
+    <code>GET /health</code>
+  </div>
+  <div class="api-url">
+    <span style="color:var(--muted); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">Model</span>
+    <code>ResNet-50 · 2048-dim · KNN k=50</code>
+  </div>
+  <div style="margin-left:auto; font-size:10px; color:var(--muted);">
+    Stage 6 of 6 — Deployment
+  </div>
+</div>
+
+<script>
+// ── Cursor ─────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  ring.style.left = mx + 'px'; ring.style.top = my + 'px';
+});
+
+// ── State ──────────────────────────────────────────────
+let API_URL = '';
+let currentFile = null;
+let history = [];
+
+// ── File handling ──────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const previewImg = document.getElementById('preview-img');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault(); dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file) {
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    dropZone.classList.add('has-image');
+  };
+  reader.readAsDataURL(file);
+  resetResults();
+}
+
+// ── Sample images (generated via canvas) ──────────────
+function loadSample(type) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64; canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  if (type === 'id') {
+    // Draw simple airplane shape
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0,0,64,64);
+    ctx.fillStyle = '#C8FF00';
+    ctx.beginPath();
+    ctx.moveTo(32,10); ctx.lineTo(55,40); ctx.lineTo(32,35);
+    ctx.lineTo(9,40); ctx.closePath(); ctx.fill();
+    ctx.fillRect(25,35,14,20);
+    ctx.fillRect(15,48,34,4);
+  } else {
+    // Draw digit-like OOD pattern
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0,0,64,64);
+    ctx.strokeStyle = '#FF4D1C'; ctx.lineWidth = 4;
+    ctx.font = 'bold 48px monospace';
+    ctx.fillStyle = '#FF4D1C';
+    ctx.fillText('7', 15, 52);
+  }
+
+  canvas.toBlob(blob => {
+    const file = new File([blob], type === 'id' ? 'airplane.png' : 'digit.png', {type:'image/png'});
+    loadFile(file);
+  });
+}
+
+// ── API URL editing ────────────────────────────────────
+function editApiUrl() {
+  document.getElementById('url-input-wrap').style.display = 'block';
+  document.getElementById('api-url-input').value = API_URL;
+}
+function saveApiUrl() {
+  API_URL = document.getElementById('api-url-input').value.trim() || '';
+  document.getElementById('api-url-display').textContent = API_URL || 'Not configured';
+  document.getElementById('url-input-wrap').style.display = 'none';
+}
+
+// ── Analyse ────────────────────────────────────────────
+async function analyseImage() {
+  if (!currentFile) { alert('Please upload an image first.'); return; }
+
+  const btn = document.getElementById('analyse-btn');
+  btn.classList.add('loading');
+  resetResults();
+
+  try {
+    const formData = new FormData();
+    formData.append('file', currentFile);
+
+    const response = await fetch(`${API_URL}/predict`, {
+      method: 'POST',
+      body: formData,
+      headers: { 'ngrok-skip-browser-warning': '1' }
+    });
+
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    const data = await response.json();
+    renderResults(data);
+    addToHistory(data);
+
+  } catch (err) {
+    renderError(err.message);
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+// ── Render results ─────────────────────────────────────
+function resetResults() {
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('results-content').style.display = 'none';
+  ['status-card','prediction-row','scores-section'].forEach(id => {
+    document.getElementById(id).classList.remove('visible','id','ood');
+  });
+}
+
+function renderResults(data) {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-content').style.display = 'flex';
+  document.getElementById('results-content').style.flexDirection = 'column';
+  document.getElementById('results-content').style.gap = '20px';
+
+  const isOod = data.is_ood;
+
+  // Status card
+  const card = document.getElementById('status-card');
+  const icon = document.getElementById('status-icon');
+  const title = document.getElementById('status-title');
+  const desc = document.getElementById('status-desc');
+
+  card.classList.add(isOod ? 'ood' : 'id');
+  icon.textContent = isOod ? '⚠' : '✓';
+  title.textContent = isOod ? 'Out-of-Distribution' : 'In-Distribution';
+  desc.textContent = isOod
+    ? 'This image does not match any known class distribution.'
+    : `Recognised as a known class with ${data.confidence}% confidence.`;
+
+  setTimeout(() => card.classList.add('visible'), 50);
+
+  // Prediction
+  document.getElementById('pred-class').textContent = data.predicted_class.toUpperCase();
+  document.getElementById('pred-sub').textContent = isOod ? '(unreliable — OOD input)' : 'Calibrated prediction';
+
+  // Confidence ring
+  const conf = data.confidence / 100;
+  const circumference = 213.6;
+  const circle = document.getElementById('conf-circle');
+  circle.style.strokeDashoffset = circumference * (1 - conf);
+  circle.style.stroke = isOod ? 'var(--ood-color)' : 'var(--id-color)';
+  document.getElementById('conf-value').textContent = data.confidence + '%';
+
+  setTimeout(() => document.getElementById('prediction-row').classList.add('visible'), 150);
+
+  // Score bars
+  const knnThresh = data.fused_threshold; // use fused as proxy
+  const fuseThresh = data.fused_threshold;
+
+  // KNN bar (normalise 0-1 roughly)
+  const knnNorm = Math.min(data.knn_score * 2, 1);
+  setBar('knn-bar', knnNorm, isOod);
+  document.getElementById('knn-val').textContent = data.knn_score.toFixed(4);
+  document.getElementById('knn-thresh').textContent = '0.2253';
+  setThreshold('knn-marker', 'knn-thresh-label', 0.2253 * 2);
+
+  // Entropy bar (normalise 0-2 → 0-1)
+  const entNorm = Math.min(data.entropy / 2, 1);
+  setBar('ent-bar', entNorm, data.entropy > 0.5);
+  document.getElementById('ent-val').textContent = data.entropy.toFixed(4);
+
+  // Fused bar
+  const fuseNorm = Math.min(data.fused_score, 1);
+  setBar('fused-bar', fuseNorm, isOod);
+  document.getElementById('fused-val').textContent = data.fused_score.toFixed(4);
+  document.getElementById('fused-thresh').textContent = data.fused_threshold.toFixed(4);
+  setThreshold('fused-marker', 'fused-thresh-label', data.fused_threshold);
+
+  setTimeout(() => document.getElementById('scores-section').classList.add('visible'), 250);
+}
+
+function setBar(id, norm, isDanger) {
+  const bar = document.getElementById(id);
+  bar.style.width = '0%';
+  bar.className = 'bar-fill ' + (isDanger ? 'danger' : 'safe');
+  setTimeout(() => { bar.style.width = (norm * 100) + '%'; }, 100);
+}
+
+function setThreshold(markerId, labelId, norm) {
+  const pct = Math.min(norm * 100, 98);
+  document.getElementById(markerId).style.left = pct + '%';
+  document.getElementById(labelId).textContent = 'threshold';
+  document.getElementById(labelId).style.left = pct + '%';
+}
+
+function renderError(msg) {
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('empty-state').querySelector('h3').textContent = 'API Error';
+  document.getElementById('empty-state').querySelector('p').textContent = msg + ' — Make sure your FastAPI server is running and the URL is correct.';
+}
+
+// ── History ────────────────────────────────────────────
+function addToHistory(data) {
+  const container = document.getElementById('history-items');
+  if (history.length === 0) container.innerHTML = '';
+
+  const src = previewImg.src;
+  history.unshift({src, isOod: data.is_ood, cls: data.predicted_class});
+  if (history.length > 12) history.pop();
+
+  container.innerHTML = history.map(h => `
+    <div class="history-item">
+      <img src="${h.src}" alt="${h.cls}">
+      <div class="badge ${h.isOod ? 'ood' : 'id'}"></div>
+    </div>
+  `).join('');
+}
+
+// ── Paste image ────────────────────────────────────────
+document.addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) { loadFile(file); break; }
+    }
+  }
+});
+</script>
+</body>
+</html>

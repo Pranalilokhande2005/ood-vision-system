@@ -1,0 +1,58 @@
+{
+  "img_size": 224,
+  "batch_size": 64,
+  "num_classes": 10,
+  "classes": [
+    "airplane",
+    "auto",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "train_size": 40000,
+  "val_size": 10000,
+  "ood_sets": [
+    "SVHN",
+    "CIFAR-100"
+  ],
+  "seed": 42,
+  "backbone": "resnet50",
+  "embed_dim": 2048,
+  "test_acc": 0.9266,
+  "best_val_acc": 0.9281,
+  "best_ckpt": "/content/drive/MyDrive/ood_vision_system/checkpoints/resnet50_best.pth",
+  "epochs": 20,
+  "stage3_complete": true,
+  "stage4_complete": true,
+  "knn_threshold": 0.22528310120105743,
+  "energy_threshold": -1.9213026762008667,
+  "knn_auroc_svhn": 97.94593634757223,
+  "knn_auroc_c100": 87.38205049999999,
+  "energy_auroc_svhn": 82.91195086816226,
+  "energy_auroc_c100": 80.0110425,
+  "stage5_complete": true,
+  "temperature": 0.9950823783874512,
+  "fused_threshold": 0.5095622539520264,
+  "mc_passes": 30,
+  "weights": {
+    "knn": 0.6,
+    "entropy": 0.3,
+    "msp": 0.1
+  },
+  "stage6_complete": true
+}
